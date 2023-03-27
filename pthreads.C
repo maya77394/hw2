@@ -3,76 +3,82 @@
 #include <pthread.h>
 #include <time.h>
 
-#define M 4 
-#define N 3
-#define P 3
-#define NUM_THREADS 2
+#define M 500
+#define N 500
+#define P 500
+#define NUM_THREADS 4
 
-int mat1[M][N] = {{5, 6, 7}, {8, 9, 1}, {2, 3, 4}, {6, 5, 4}};
-int mat2[N][P] = {{4, 5, 6}, {9, 8, 7}, {1, 2, 3}};
-int result[M][P];
+int matrix1[M][N], matrix2[N][P], result[M][P];
 
-pthread_barrier_t barrier;
-
-typedef struct {
+struct thread_data {
     int thread_id;
-} thread_args;
+    int start_row;
+    int end_row;
+};
 
-void *multiply(void *arg) {
-    thread_args *args = (thread_args*)arg;
-    int thread_id = args->thread_id;
-    int start_row = thread_id * (M / NUM_THREADS);
-    int end_row = (thread_id + 1) * (M / NUM_THREADS);
+void *multiply_matrices(void *arg) {
+    struct thread_data *data = (struct thread_data *)arg;
+    int start_row = data->start_row;
+    int end_row = data->end_row;
+    int i, j, k;
 
-    for (int i = start_row; i < end_row; i++) {
-        for (int j = 0; j < P; j++) {
-            for (int k = 0; k < N; k++) {
-                result[i][j] += mat1[i][k] * mat2[k][j];
+    for (i = start_row; i < end_row; i++) {
+        for (j = 0; j < P; j++) {
+            result[i][j] = 0;
+            for (k = 0; k < N; k++) {
+                result[i][j] += matrix1[i][k] * matrix2[k][j];
             }
         }
     }
 
-    pthread_barrier_wait(&barrier);
     pthread_exit(NULL);
 }
 
 int main() {
+    int i, j;
     pthread_t threads[NUM_THREADS];
-    thread_args args[NUM_THREADS];
-    int thread_ids[NUM_THREADS];
-    struct timespec start_time, end_time;
-    double elapsed_time;
+    struct thread_data thread_data_array[NUM_THREADS];
+    clock_t start, end;
+    double cpu_time_used;
 
-    pthread_barrier_init(&barrier, NULL, NUM_THREADS);
-
-    // Create threads to calculate matrix multiplication
-    clock_gettime(CLOCK_MONOTONIC, &start_time);
-    for (int i = 0; i < NUM_THREADS; i++) {
-        thread_ids[i] = i;
-        args[i].thread_id = i;
-        pthread_create(&threads[i], NULL, multiply, (void*)&args[i]);
+    // Initialize matrices with random values
+    srand(time(NULL));
+    for (i = 0; i < M; i++) {
+        for (j = 0; j < N; j++) {
+            matrix1[i][j] = rand() % 10;
+        }
+    }
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < P; j++) {
+            matrix2[i][j] = rand() % 10;
+        }
     }
 
-    // Wait for threads to finish
-    for (int i = 0; i < NUM_THREADS; i++) {
+    // Multiply matrices using pthreads
+    start = clock();
+    int chunk_size = M / NUM_THREADS;
+    for (i = 0; i < NUM_THREADS; i++) {
+        thread_data_array[i].thread_id = i;
+        thread_data_array[i].start_row = i * chunk_size;
+        thread_data_array[i].end_row = (i == NUM_THREADS - 1) ? M : (i + 1) * chunk_size;
+        pthread_create(&threads[i], NULL, multiply_matrices, (void *)&thread_data_array[i]);
+    }
+    for (i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
-    clock_gettime(CLOCK_MONOTONIC, &end_time);
-
-    // Calculate and print elapsed time
-    elapsed_time = (end_time.tv_sec - start_time.tv_sec) +
-                   (end_time.tv_nsec - start_time.tv_nsec) / 1e9;
-    printf("time: %f seconds\n", elapsed_time);
+    end = clock();
+    cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
 
     // Print resulting matrix
     printf("Resulting matrix:\n");
-    for (int i = 0; i < M; i++) {
-        for (int j = 0; j < P; j++) {
+    for (i = 0; i < M; i++) {
+        for (j = 0; j < P; j++) {
             printf("%d ", result[i][j]);
         }
         printf("\n");
     }
 
-    pthread_barrier_destroy(&barrier);
+    printf("Time taken by pthreads: %lf seconds\n", cpu_time_used);
+
     return 0;
 }
