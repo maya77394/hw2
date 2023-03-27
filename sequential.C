@@ -1,12 +1,13 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
-#define M 4 
-#define N 3
-#define P 3
+#define M 500
+#define N 500
+#define P 500
 
-int matrix1[M][N] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {3, 4, 5}};
-int matrix2[N][P] = {{9, 8, 7}, {6, 5, 4}, {3, 2, 1}};
+int matrix1[M][N];
+int matrix2[N][P];
 int result[M][P];
 
 int main() {
@@ -14,7 +15,22 @@ int main() {
     clock_t start, end;
     double elapsed_time;
 
-    // Matrix multiplication
+    // Initialize random seed
+    srand(time(NULL));
+
+    // Fill matrix1 and matrix2 with random values
+    for (i = 0; i < M; i++) {
+        for (j = 0; j < N; j++) {
+            matrix1[i][j] = rand() % 100;
+        }
+    }
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < P; j++) {
+            matrix2[i][j] = rand() % 100;
+        }
+    }
+
+    // Perform matrix multiplication
     start = clock();
     for (i = 0; i < M; i++) {
         for (j = 0; j < P; j++) {
@@ -25,7 +41,6 @@ int main() {
         }
     }
     end = clock();
-    elapsed_time = ((double) (end - start)) / CLOCKS_PER_SEC;
 
     // Print resulting matrix
     printf("Resulting matrix:\n");
@@ -36,7 +51,9 @@ int main() {
         printf("\n");
     }
 
-    printf("Elapsed time: %f seconds\n", elapsed_time);
+    // Calculate and print elapsed time
+    elapsed_time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("Elapsed time: %lf seconds\n", elapsed_time);
 
     return 0;
 }
