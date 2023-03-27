@@ -62,7 +62,7 @@ int main() {
     // Calculate and print elapsed time
     elapsed_time = (end_time.tv_sec - start_time.tv_sec) +
                    (end_time.tv_nsec - start_time.tv_nsec) / 1e9;
-    printf("Elapsed time: %f seconds\n", elapsed_time);
+    printf("time: %f seconds\n", elapsed_time);
 
     // Print resulting matrix
     printf("Resulting matrix:\n");
